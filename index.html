@@ -326,11 +326,11 @@
   .sheet-doc .cell .it{margin-top:calc(6px * var(--s))}
 
   @media print{
-    @page{size:letter;margin:.45in}
+    @page{size:letter;margin:0}
     html,body{background:#fff;padding:0;margin:0}
     .wrap,.tray,.modal{display:none !important}
     #printarea{display:block !important}
-    #printarea .page{width:auto;padding:0;box-shadow:none;transform:none !important}
+    #printarea .page{width:auto;padding:.45in;box-shadow:none;transform:none !important}
     #printarea .page + .page{break-before:page}
   }
 </style>
@@ -801,8 +801,8 @@ function standaloneHTML(files, mode){
   return '<!doctype html><meta charset="utf-8"><title>' +
     files.map(titleFor).join(' + ').replace(/[<>&]/g,'') + '</title><style>' + vars + css +
     'body{margin:0;background:#fff;font-family:Calibri,Carlito,"Segoe UI",system-ui,sans-serif}' +
-    '.page{width:7.5in;padding:.42in .4in;margin:0 auto;box-shadow:none;transform:none}' +
-    '@media print{@page{size:letter;margin:.45in}.page{width:auto;padding:0;margin:0}' +
+    .page{width:7.5in;padding:.42in .4in;margin:0 auto;box-shadow:none;transform:none}' +
+    '@media print{@page{size:letter;margin:0}.page{width:auto;padding:.45in;margin:0}' +
     '.page + .page{break-before:page}}' + tune + '</style>' + pages +
     '<script>window.onload=function(){setTimeout(function(){window.print();},250);};<\/script>';
 }
@@ -863,10 +863,3 @@ document.getElementById('clear').onclick = ()=>{
   tally(); buildPills(); render();
 })();
 </script>
-<style>
-@media print {
-    a[href]::after {
-        content: none !important;
-    }
-}
-</style>
