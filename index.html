@@ -326,7 +326,7 @@
   .sheet-doc .cell .it{margin-top:calc(6px * var(--s))}
 
   @media print{
-    @page{size:letter;margin:.45in}
+    @page{size:letter;margin:.25in .5in}
     html,body{background:#fff;padding:0;margin:0}
     .wrap,.tray,.modal{display:none !important}
     #printarea{display:block !important}
@@ -395,12 +395,9 @@
   <div class="modal-box">
     <div class="modal-bar">
       <h2 id="mTitle"></h2>
-      <button class="btn-print" id="mPrint" type="button">Print this handout</button>
-      <button class="btn-close" id="mDl" type="button">Download</button>
+      <button class="btn-print" id="mPrint" type="button">Print / Save as PDF</button>
       <button class="btn-close" id="mClose" type="button">Close</button>
     </div>
-    <p class="hint" id="hint">If the print window does not open, use <b>Download</b> &mdash;
-      the file opens in your browser and prints itself. A ready-made PDF of every handout is also in the course folder.</p>
     <div class="stage" id="stage"></div>
   </div>
 </div>
@@ -415,8 +412,7 @@
       <input id="copies" type="number" min="1" max="300" value="30">
     </div>
     <div class="grp"><b id="tPaper">0</b><span class="lbl">sheets of paper</span></div>
-    <button id="printAll" type="button">Print the list</button>
-    <button id="dlAll" type="button" style="margin-left:0">Download the list</button>
+    <button id="dlAll" type="button">Print the list</button>
     <button id="clear" type="button" style="margin-left:0;background:rgba(255,255,255,.16);color:#fff">Clear</button>
   </div>
 </div>
@@ -655,8 +651,7 @@ function wire(){
     b.onclick = ()=>downloadAsset(b.dataset.asset);
   });
   main.querySelectorAll('[data-dlhtml]').forEach(b=>{
-    b.onclick = ()=>downloadPrintable([b.dataset.dlhtml],
-      b.dataset.dlhtml.replace(/\.docx$/,'') + '_print.html', 'ws');
+    b.onclick = ()=>printFiles([b.dataset.dlhtml], 'ws');
   });
   main.querySelectorAll('[data-copy]').forEach(b=>{
     b.onclick = async ()=>{
@@ -685,7 +680,7 @@ function resCard(r){
   if(r.doc){                                   // rendered like a handout
     acts += `<button class="act primary" type="button" data-view="${esc(r.doc)}">View &amp; print</button>`;
     if(r.hasKey) acts += `<button class="act ghost" type="button" data-key="${esc(r.doc)}">Key</button>`;
-    acts += `<button class="act ghost" type="button" data-dlhtml="${esc(r.doc)}">Download</button>`;
+    acts += `<button class="act ghost" type="button" data-dlhtml="${esc(r.doc)}">Print</button>`;
   }
   if(r.file && r.fileOnly){                    // kept as a file to keep this page small
     acts += `<button class="copybtn" type="button" data-copy="${esc(r.file)}">Copy file name</button>
@@ -784,47 +779,15 @@ function loadPrintArea(files, mode){
 }
 function printFiles(files, mode){
   loadPrintArea(files, mode);
-  // Some embedded viewers block window.print(); the download button below always works.
   try{ window.print(); }catch(e){}
 }
-function standaloneHTML(files, mode){
-  const css = document.getElementById('docCSS').textContent;
-  const pages = files.map(f=>pageFor(f, mode).outerHTML).join('');
-  const vars = ':root{--teal:#1F1F1D;--teal-deep:#0C0C0B;--teal-wash:#FBF3DA;--maroon:#8A6C10;' +
-    '--maroon-wash:#FCF5DE;--rule:#DEDACD;--rule-soft:#EFEBDF;--ink:#161514;' +
-    '--display:Cambria,Caladea,"Palatino Linotype",Georgia,serif;' +
-    '--body:Calibri,Carlito,"Segoe UI",system-ui,-apple-system,sans-serif;' +
-    '--mono:Consolas,ui-monospace,monospace}';
-  const tune = '.sheet-doc .bar{background:#1F1F1D;border-left:5px solid #C9A227}' +
-    '.sheet-doc .wt{color:#161514}.sheet-doc .sl{border-bottom:2.5px solid #C9A227}' +
-    '.sheet-doc .sl .wn,.sheet-doc .ul,.sheet-doc .num{color:#7A5E0C}';
-  return '<!doctype html><meta charset="utf-8"><title>' +
-    files.map(titleFor).join(' + ').replace(/[<>&]/g,'') + '</title><style>' + vars + css +
-    'body{margin:0;background:#fff;font-family:Calibri,Carlito,"Segoe UI",system-ui,sans-serif}' +
-    '.page{width:7.5in;padding:.42in .4in;margin:0 auto;box-shadow:none;transform:none}' +
-    '@media print{@page{size:letter;margin:.45in}.page{width:auto;padding:0;margin:0}' +
-    '.page + .page{break-before:page}}' + tune + '</style>' + pages +
-    '<script>window.onload=function(){setTimeout(function(){window.print();},250);};<\/script>';
-}
-function downloadPrintable(files, name, mode){
-  const blob = new Blob([standaloneHTML(files, mode)], {type:'text/html'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-}
-// keep the print area loaded so the browser's own Print command works too
+// keep the print area loaded so a manual right-click/Ctrl+P print still shows the handout
 window.addEventListener('beforeprint', ()=>{
   const area = document.getElementById('printarea');
   if(!area.innerHTML && previewFile) loadPrintArea([previewFile], previewMode);
 });
 document.getElementById('mClose').onclick = closePreview;
 document.getElementById('mPrint').onclick = ()=>printFiles([previewFile], previewMode);
-document.getElementById('mDl').onclick = ()=>
-  downloadPrintable([previewFile],
-    previewFile.replace(/\.docx$/,'') + (previewMode==='key' ? '_KEY' : '') + '_print.html',
-    previewMode);
 document.getElementById('modal').addEventListener('click', e=>{
   if(e.target.id==='modal') closePreview();
 });
@@ -835,10 +798,9 @@ function queuedFiles(){
   Object.keys(STD).sort().forEach(c=>STD[c].sheets.forEach(sh=>{ if(queue.has(sh.file)) order.push(sh.file); }));
   return order;
 }
-document.getElementById('printAll').onclick = ()=>{ const o=queuedFiles(); if(o.length) printFiles(o,'ws'); };
 document.getElementById('dlAll').onclick = ()=>{
   const o = queuedFiles();
-  if(o.length) downloadPrintable(o, 'FVMS_print_list_' + o.length + '_handouts.html', 'ws');
+  if(o.length) printFiles(o, 'ws');
 };
 
 function updateTray(){
